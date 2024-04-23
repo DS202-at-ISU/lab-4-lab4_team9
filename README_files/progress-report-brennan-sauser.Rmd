@@ -1,0 +1,72 @@
+---
+title: "Progress Report"
+author: "Brennan Sauser"
+date: "2024-04-22"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include = FALSE}
+library(Lahman)
+library(rvest)
+library(tidyverse)
+library(dplyr)
+library(lubridate)
+hof <- Lahman::HallOfFame
+```
+
+```{r}
+url <- "https://www.baseball-reference.com/awards/hof_2023.shtml"
+html_content <- read_html(url)
+
+extracted_tables <- html_table(html_content)
+
+write.csv(extracted_tables[[1]], "temp.csv", row.names=FALSE)
+
+back_in <- readr::read_csv("temp.csv", skip = 1, show_col_types =FALSE)
+
+print(head(back_in, 3))
+
+process_player_id <- function(player_name){
+  first <- tolower(str_split_i(player_name, " ", 1))
+  last <- tolower(str_split_i(player_name, " ", 2))
+  return(paste(substring(last,1,5), substring(first,1,2), "01", sep = ""))
+}
+
+back_in$Name <- gsub("X-", "", back_in$Name)
+back_in$Name <- gsub(" HOF", "", back_in$Name)
+back_in$`playerID` <- process_player_id(back_in$Name)
+
+processPlayerID <- function(name){
+  split_name <- strsplit(name, " ")[[1]]
+  first <- tolower(split_name[1])
+  last <- tolower(split_name[2])
+  paste0(substring(last,1,5), substring(first,1,2), "01")
+}
+
+back_in$Name <- sapply(back_in$Name, function(name) gsub("X-| HOF", "", name))
+
+back_in$playerID <- sapply(back_in$Name, processPlayerID)
+
+back_in <- back_in %>%
+        transmute(
+                playerID = playerID,  #CHANGE IS HERE
+                yearID = 2023,
+                votedBy = "BBWAA",
+                ballots = 389,
+                needed = round(.75 * ballots),
+                votes = Votes,
+                inducted = factor(votes >= needed, labels = c("N","Y")),
+                category = "Player",
+                needed_note = NaN
+        )
+
+hof_2023 <- rbind(hof, back_in)
+
+print(tail(hof_2023, 28))
+```
+
+

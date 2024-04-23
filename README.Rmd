@@ -7,6 +7,7 @@ output: github_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
+install.packages("Lahman", repos = "http://cran.us.r-project.org")
 ```
 
 # Lab report #4 - instructions
